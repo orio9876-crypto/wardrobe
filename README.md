@@ -39,3 +39,9 @@ The repository still retains its existing local image/import code in `scripts/`,
 ## License
 
 [MIT](LICENSE)
+
+## GitHub Pages deployment
+
+Enable **Settings → Pages → Build and deployment → Source: GitHub Actions** in the repository. Once enabled, every push to `main` runs the deployment workflow after its tests and build succeed. You can also run it manually from **Actions → Deploy GitHub Pages → Run workflow**.
+
+The published site is expected at [https://orio9876-crypto.github.io/wardrobe/](https://orio9876-crypto.github.io/wardrobe/). To disable deployment, disable or delete `.github/workflows/deploy-pages.yml` and change the repository Pages source away from GitHub Actions in **Settings → Pages**.
