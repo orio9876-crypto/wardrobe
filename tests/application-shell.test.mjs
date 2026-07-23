@@ -5,6 +5,7 @@ import test from "node:test";
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const locales = read("src/app/locales.ts");
 const shell = read("src/app/AppShell.tsx");
+const repository = read("src/app/prototype-data.ts");
 const css = read("src/styles.css");
 const html = read("index.html");
 
@@ -44,4 +45,41 @@ test("layout guards cover the requested viewport widths without horizontal overf
     assert.match(css, /grid-template-columns: repeat\(5, 1fr\)/);
     assert.match(css, /max-inline-size: 1040px/);
   }
+});
+
+test("onboarding persists completion and resumable step in the isolated local repository", () => {
+  assert.match(repository, /PROTOTYPE_STORAGE_KEY = "wardrobe-prototype-v1"/);
+  assert.match(repository, /onboarding: \{ step: 0, complete: false/);
+  assert.match(repository, /savePrototypeData/);
+  assert.match(shell, /שלב \{step \+ 1\} מתוך/);
+  assert.match(shell, /onboarding: \{ \.\.\.data\.onboarding, complete: false, step: 0 \}/);
+});
+
+test("all five destinations are functional client-side screens", () => {
+  for (const screen of ["Today", "Wardrobe", "Add", "Outfits", "Profile"]) assert.match(shell, new RegExp(`function ${screen}`));
+  assert.match(shell, /onSelect=\{setActive\}/);
+});
+
+test("manual wardrobe CRUD and archive operations are present", () => {
+  assert.match(shell, /createItem\(draft\)/);
+  assert.match(shell, /items\.map\(\(x\) => x\.id === selected\.id/);
+  assert.match(shell, /archived: !x\.archived/);
+  assert.match(shell, /items\.filter\(\(x\) => x\.id !== selected\.id\)/);
+  assert.match(shell, /confirm\("למחוק את הפריט לצמיתות/);
+});
+
+test("simulated review and duplicate decisions remain explicit and gated", () => {
+  assert.match(shell, /בדיקת זיהוי מדומה/);
+  assert.match(shell, /לא הופעל AI/);
+  assert.match(shell, /בדיקת כפילות מדומה/);
+  assert.match(repository, /decision === "same"/);
+  assert.match(repository, /decision === "additional"/);
+  assert.match(repository, /quantity: item\.quantity \+ candidate\.quantity/);
+});
+
+test("prototype data reset and locale direction contracts are available", () => {
+  assert.match(repository, /resetPrototypeData\(\) \{ localStorage\.removeItem/);
+  assert.match(shell, /resetPrototypeData\(\); update\(loadPrototypeData\(\)\)/);
+  assert.match(locales, /document\.documentElement\.lang = locale/);
+  assert.match(locales, /document\.documentElement\.dir = translated\.direction/);
 });
