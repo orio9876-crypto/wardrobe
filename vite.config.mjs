@@ -6,6 +6,7 @@ import { responsiveImageApi } from "./scripts/responsive-image-api.mjs";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   return {
+    base: mode === "production" ? "/wardrobe/" : "/",
     optimizeDeps: {
       include: ["react", "react-dom/client"],
     },
@@ -13,7 +14,7 @@ export default defineConfig(({ mode }) => {
       host: "0.0.0.0",
       allowedHosts: ["terminal.local"],
       warmup: {
-        clientFiles: ["./src/main.jsx"],
+        clientFiles: ["./src/main.tsx"],
       },
     },
     preview: {
