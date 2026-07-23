@@ -2,7 +2,8 @@ const CACHE = "open-wardrobe-shell-v1";
 const IMAGE_CACHE = "wardrobe-images-v1";
 const ACTIVE_CACHES = new Set([CACHE, IMAGE_CACHE]);
 const MAX_IMAGE_ENTRIES = 800;
-const SHELL = ["/", "/manifest.webmanifest"];
+const SCOPE_PATH = new URL(self.registration.scope).pathname;
+const SHELL = [SCOPE_PATH, `${SCOPE_PATH}manifest.webmanifest`];
 
 async function trimImages(cache) {
   const keys = await cache.keys();
@@ -35,9 +36,9 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const request = event.request;
   const url = new URL(request.url);
-  if (request.method !== "GET" || url.origin !== self.location.origin || url.pathname.startsWith("/api/")) return;
+  if (request.method !== "GET" || url.origin !== self.location.origin || url.pathname.startsWith(`${SCOPE_PATH}api/`)) return;
 
-  if (url.pathname.startsWith("/_ipx/")) {
+  if (url.pathname.startsWith(`${SCOPE_PATH}_ipx/`)) {
     event.respondWith(caches.open(IMAGE_CACHE).then(async (cache) => {
       const cached = await cache.match(request);
       const update = fetchAndCacheImage(request, cache);
@@ -55,6 +56,6 @@ self.addEventListener("fetch", (event) => {
       const copy = response.clone();
       caches.open(CACHE).then((cache) => cache.put(request, copy));
       return response;
-    }).catch(() => caches.match(request).then((cached) => cached || caches.match("/"))));
+    }).catch(() => caches.match(request).then((cached) => cached || caches.match(SCOPE_PATH))));
   }
 });
