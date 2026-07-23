@@ -7,6 +7,30 @@ test("RTL and LTR document contracts remain valid", () => { assert.match(html, /
 test("responsive shell protects supported viewports and safe areas", () => { for (const width of [320, 375, 390, 430, 768, 1440]) assert.ok(width >= 320); assert.match(css, /body \{ min-inline-size: 320px; overflow-x: hidden; \}/); assert.match(css, /max-inline-size: 1040px/); assert.match(css, /env\(safe-area-inset-bottom\)/); });
 test("onboarding uses accessible numeric height, weight and age pickers", () => { assert.match(shell, /מה הגובה שלך\?/); assert.match(shell, /min=\{140\} max=\{220\}/); assert.match(shell, /type="range"/); assert.match(shell, /מה המשקל שלך\?/); assert.match(shell, /מה הגיל שלך\?/); assert.match(shell, /שנת לידה משוערת/); assert.match(shell, /weightKg: undefined/); assert.doesNotMatch(shell, /גובה \/ טווח גיל/); });
 test("photo selection precedes automatic metadata review and approval", () => { assert.match(shell, /צילום פריט/); assert.match(shell, /בחירת תמונה מהגלריה/); assert.match(shell, /צילום כמה פריטים יחד/); assert.match(shell, /מעבדים את התמונה/); assert.match(shell, /detectedDraft/); assert.match(shell, /זהו זיהוי מדומה לצורך בדיקת חוויית המשתמש/); assert.match(shell, /אישור ושמירה בארון/); assert.match(shell, /עריכת פרטים/); assert.match(shell, /דחייה ומחיקה/); });
+test("file-system upload is a separate, validated source", () => {
+  assert.match(shell, /העלאת תמונה מקובץ/);
+  assert.match(shell, /data-testid="file-system-upload"/);
+  assert.match(shell, /const IMAGE_ACCEPT = ACCEPTED_IMAGE_TYPES\.join\(","\)/);
+  assert.match(shell, /image\/jpeg", "image\/png", "image\/webp", "image\/heic", "image\/heif/);
+  assert.match(shell, /capture="environment"/);
+  assert.match(shell, /בחירת תמונה מהגלריה"[^]*?type="file" accept=\{IMAGE_ACCEPT\} onChange=\{file\}/);
+  assert.match(shell, /fileSystemInput[^]*?type="file" accept=\{IMAGE_ACCEPT\} onChange=\{file\}/);
+  assert.doesNotMatch(shell, /ref=\{fileSystemInput\}[^>]*capture=/);
+});
+test("file validation, retry, preview fallback and desktop drop zone have explicit contracts", () => {
+  assert.match(shell, /MAX_IMAGE_SIZE = 15 \* 1024 \* 1024/);
+  assert.match(shell, /אפשר להעלות כרגע קובצי תמונה בלבד\./);
+  assert.match(shell, /התמונה גדולה מדי\. אפשר להעלות תמונה עד 15MB\./);
+  assert.match(shell, /event\.target\.value = ""/);
+  assert.match(shell, /reader\.onload[^]*?setState\("processing"\)/);
+  assert.match(shell, /אי אפשר להציג כרגע תצוגה מקדימה של פורמט התמונה/);
+  assert.match(shell, /גררו לכאן תמונה או בחרו קובץ/);
+  assert.match(shell, /אפשר להעלות תמונה אחת בכל פעם\./);
+  assert.match(shell, /onDrop=\{drop\}/);
+  assert.match(shell, /role="alert" aria-live="assertive"/);
+  assert.match(css, /\.file-drop-zone \{ display:none/);
+  assert.match(css, /@media \(min-width:900px\) \{ \.file-drop-zone \{ display:block; \} \}/);
+});
 test("duplicate resolution remains explicit", () => { for (const label of ["זה אותו פריט שכבר קיים", "יש לי פריט נוסף שנראה זהה", "זה פריט אחר"]) assert.match(shell, new RegExp(label)); assert.match(repository, /decision === "same"/); assert.match(repository, /quantity: item\.quantity \+ candidate\.quantity/); });
 test("profile is readable Hebrew rather than raw JSON", () => { assert.match(shell, /הפרטים שלי/); assert.match(shell, /סוגי לוקים מועדפים/); assert.match(shell, /המטרות שלי/); assert.match(shell, /הסגנון שלי/); assert.match(shell, /כעת הנתונים נשמרים רק בדפדפן במכשיר הזה\. אין עדיין חשבון, ענן או שיתוף מידע\./); assert.doesNotMatch(shell, /JSON\.stringify\(data\.onboarding\.answers/); assert.doesNotMatch(shell, /<pre>/); });
 test("storage key and malformed onboarding normalization preserve valid collections", () => { assert.match(repository, /PROTOTYPE_STORAGE_KEY = "wardrobe-prototype-v1"/); assert.match(repository, /numberInRange/); assert.match(repository, /Array\.isArray\(stored\.items\)/); assert.match(repository, /Array\.isArray\(stored\.favorites\)/); assert.match(repository, /heightCm: numberInRange/); });
