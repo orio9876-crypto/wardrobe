@@ -1,0 +1,14 @@
+/** Browser-only repository for the validation prototype. Replace this module with API calls later. */
+export type WardrobeItem = { id: string; name: string; category: string; color: string; season: string; style: string; quantity: number; image?: string; createdAt: string; archived: boolean };
+export type Onboarding = { step: number; complete: boolean; answers: { presentation?: string; goals?: string[]; styles?: string[]; start?: string }; heightCm?: number; weightKg?: number; age?: number };
+export type PrototypeData = { onboarding: Onboarding; items: WardrobeItem[]; favorites: string[] };
+export const PROTOTYPE_STORAGE_KEY = "wardrobe-prototype-v1";
+const initial = (): PrototypeData => ({ onboarding: { step: 0, complete: false, answers: {} }, items: [], favorites: [] });
+const numberIn = (value: unknown, min: number, max: number) => typeof value === "number" && Number.isInteger(value) && value >= min && value <= max ? value : undefined;
+export function loadPrototypeData(): PrototypeData {
+  try { const raw = JSON.parse(localStorage.getItem(PROTOTYPE_STORAGE_KEY) || "null"); if (!raw || typeof raw !== "object") return initial(); const base = initial(); const answers = raw.onboarding?.answers || {}; return { items: Array.isArray(raw.items) ? raw.items : [], favorites: Array.isArray(raw.favorites) ? raw.favorites : [], onboarding: { step: Number.isInteger(raw.onboarding?.step) ? raw.onboarding.step : 0, complete: Boolean(raw.onboarding?.complete), answers: { presentation: typeof answers.presentation === "string" ? answers.presentation : undefined, goals: Array.isArray(answers.goals) ? answers.goals.filter((x: unknown) => typeof x === "string") : [], styles: Array.isArray(answers.styles) ? answers.styles.filter((x: unknown) => typeof x === "string") : [], start: typeof answers.start === "string" ? answers.start : undefined }, heightCm: numberIn(raw.onboarding?.heightCm, 140, 220), weightKg: numberIn(raw.onboarding?.weightKg, 35, 250), age: numberIn(raw.onboarding?.age, 13, 110) } }; } catch { return initial(); }
+}
+export function savePrototypeData(data: PrototypeData) { localStorage.setItem(PROTOTYPE_STORAGE_KEY, JSON.stringify(data)); }
+export function resetPrototypeData() { localStorage.removeItem(PROTOTYPE_STORAGE_KEY); }
+export function createItem(fields: Omit<WardrobeItem, "id" | "createdAt" | "archived">): WardrobeItem { return { ...fields, id: crypto.randomUUID(), createdAt: new Date().toISOString(), archived: false }; }
+export function resolveDuplicate(items: WardrobeItem[], candidate: WardrobeItem, decision: "same" | "additional" | "different", matchId?: string) { if (decision === "same") return items; if (decision === "additional" && matchId) return items.map((item) => item.id === matchId ? { ...item, quantity: item.quantity + candidate.quantity } : item); return [...items, candidate]; }
