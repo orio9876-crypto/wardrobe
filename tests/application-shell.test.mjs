@@ -6,12 +6,13 @@ const locales = read("src/app/locales.ts"); const shell = read("src/app/AppShell
 test("RTL and LTR document contracts remain valid", () => { assert.match(html, /lang="he-IL" dir="rtl"/); assert.match(locales, /direction: "rtl"/); assert.match(locales, /direction: "ltr"/); assert.match(locales, /document\.documentElement\.dir = translated\.direction/); });
 test("responsive shell protects supported viewports and safe areas", () => { for (const width of [320, 375, 390, 430, 768, 1440]) assert.ok(width >= 320); assert.match(css, /body \{ min-inline-size: 320px; overflow-x: hidden; \}/); assert.match(css, /max-inline-size: 1040px/); assert.match(css, /env\(safe-area-inset-bottom\)/); });
 test("onboarding uses accessible numeric height, weight and age pickers", () => { assert.match(shell, /מה הגובה שלך\?/); assert.match(shell, /min=\{140\} max=\{220\}/); assert.match(shell, /type="range"/); assert.match(shell, /מה המשקל שלך\?/); assert.match(shell, /מה הגיל שלך\?/); assert.match(shell, /שנת לידה משוערת/); assert.match(shell, /weightKg: undefined/); assert.doesNotMatch(shell, /גובה \/ טווח גיל/); });
-test("photo selection precedes automatic metadata review and approval", () => { assert.match(shell, /צילום פריט/); assert.match(shell, /בחירת תמונה מהגלריה/); assert.match(shell, /צילום כמה פריטים יחד/); assert.match(shell, /מעבדים את התמונה/); assert.match(shell, /detectedDraft/); assert.match(shell, /זהו זיהוי מדומה לצורך בדיקת חוויית המשתמש/); assert.match(shell, /אישור ושמירה בארון/); assert.match(shell, /עריכת פרטים/); assert.match(shell, /דחייה ומחיקה/); });
+test("photo selection precedes automatic metadata review and approval", () => { assert.match(shell, /צילום פריט/); assert.match(shell, /בחירת תמונה מהגלריה/); assert.match(shell, /צילום כמה פריטים יחד/); assert.match(shell, /מעבדים את התמונה/); assert.match(shell, /detectedDraft/); assert.match(shell, /זהו זיהוי מדומה לצורך בדיקת חוויית המשתמש/); assert.match(shell, /אישור ושמירה בארון/); assert.match(shell, /עריכת פרטים/); assert.match(shell, /דחייה ומחיקה/); assert.match(shell, /const approve = \(\) => match \? setDuplicate\(true\) : \(update\(/); });
 test("file-system upload is a separate, validated source", () => {
   assert.match(shell, /העלאת תמונה מקובץ/);
   assert.match(shell, /data-testid="file-system-upload"/);
-  assert.match(shell, /const IMAGE_ACCEPT = ACCEPTED_IMAGE_TYPES\.join\(","\)/);
-  assert.match(shell, /image\/jpeg", "image\/png", "image\/webp", "image\/heic", "image\/heif/);
+  assert.match(shell, /const IMAGE_ACCEPT = "image\/\*,\.heic,\.heif"/);
+  assert.match(shell, /IMAGE_VALIDATION_DIAGNOSTICS = import\.meta\.env\.DEV/);
+  assert.match(shell, /console\.debug\("\[image-validation\]", \{ type: item\.type\.toLowerCase\(\), hasSupportedExtension: hasSupportedImageExtension\(item\.name\), accepted \}\)/);
   assert.match(shell, /capture="environment"/);
   assert.match(shell, /בחירת תמונה מהגלריה"[^]*?type="file" accept=\{IMAGE_ACCEPT\} onChange=\{file\}/);
   assert.match(shell, /fileSystemInput[^]*?type="file" accept=\{IMAGE_ACCEPT\} onChange=\{file\}/);

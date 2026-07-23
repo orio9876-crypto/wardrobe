@@ -3,6 +3,7 @@ import { CalendarBlank, CoatHanger, Plus, Sparkle, UserCircle, ArrowRight, Camer
 import { applyDocumentLocale, copy, type Locale } from "./locales";
 import { createItem, loadPrototypeData, resetPrototypeData, resolveDuplicate, savePrototypeData, type OnboardingAnswers, type PrototypeData, type WardrobeItem } from "./prototype-data";
 import { Card, EmptyState, PageHeader, PrimaryButton, SecondaryButton } from "./ui";
+import { hasSupportedImageExtension, isSupportedImage } from "./image-validation";
 
 type Destination = "today" | "wardrobe" | "add" | "outfits" | "profile";
 type Draft = Omit<WardrobeItem, "id" | "createdAt" | "archived">;
@@ -29,21 +30,25 @@ function ItemForm({ initial, onSave, onCancel }: { initial?: WardrobeItem; onSav
 function ItemGrid({ items, open }: { items: WardrobeItem[]; open: (i: WardrobeItem) => void }) { return <div className="item-grid">{items.map((item) => <button type="button" className="item-tile" onClick={() => open(item)} key={item.id}>{item.image ? <img src={item.image} alt=""/> : <span className="item-tile__placeholder">{item.category}</span>}<strong>{item.name}</strong><small>{item.color || item.category} · {item.quantity}</small></button>)}</div>; }
 function Today({ locale, items, go }: { locale: Locale; items: WardrobeItem[]; go: (d: Destination) => void }) { const recent = items.filter((item) => !item.archived).slice(-3).reverse(); if (!recent.length) return <main className="page"><PageHeader eyebrow={he(locale, "הארון שלך, בקצב שלך", "Your wardrobe, at your pace")} title={he(locale, "לא צריך לצלם את כל הארון היום.", "No need to photograph everything today.")}/><Card className="today-hero"><EmptyState title={he(locale, "מתחילים מפריט אחד", "Start with one item")} body={he(locale, "הארון גדל בהדרגה. אפשר להתחיל מלוק של היום או מפריט אחד.", "Your wardrobe grows gradually. Start with today's look or one item.")}><PrimaryButton onClick={() => go("add")}>צלמו את הלוק של היום</PrimaryButton></EmptyState></Card></main>; return <main className="page"><PageHeader eyebrow="היום" title={`יש בארון ${items.filter((x) => !x.archived).length} פריטים`}/><h2 className="section-title">נוספו לאחרונה</h2><ItemGrid items={recent} open={() => go("wardrobe")}/></main>; }
 function Wardrobe({ data, update, go }: { data: PrototypeData; update: (d: PrototypeData) => void; go: (d: Destination) => void }) { const [selected, setSelected] = useState<WardrobeItem | null>(null); const active = data.items.filter((x) => !x.archived); const save = (draft: Draft) => { if (selected) update({ ...data, items: data.items.map((x) => x.id === selected.id ? { ...x, ...draft } : x) }); setSelected(null); }; if (selected) return <main className="page"><PageHeader title="עריכת פריט"/><ItemForm initial={selected} onSave={save} onCancel={() => setSelected(null)}/><div className="danger-actions"><SecondaryButton onClick={() => update({ ...data, items: data.items.map((x) => x.id === selected.id ? { ...x, archived: !x.archived } : x) })}>{selected.archived ? <><ArrowCounterClockwise/>שחזור</> : <><Archive/>ארכוב</>}</SecondaryButton><SecondaryButton onClick={() => { if (confirm("למחוק את הפריט לצמיתות?")) { update({ ...data, items: data.items.filter((x) => x.id !== selected.id) }); setSelected(null); } }}><Trash/>מחיקה</SecondaryButton></div></main>; return <main className="page"><PageHeader eyebrow="הארון" title="הפריטים שלך"><PrimaryButton onClick={() => go("add")}><Plus/>הוספת פריט</PrimaryButton></PageHeader>{active.length ? <ItemGrid items={active} open={setSelected}/> : <Card><EmptyState title="הארון עדיין ריק" body="צלמו או בחרו תמונה כדי להתחיל."><PrimaryButton onClick={() => go("add")}>הוספת פריט בצילום</PrimaryButton></EmptyState></Card>}<details className="archive-list"><summary>פריטים בארכיון ({data.items.length - active.length})</summary>{data.items.filter((x) => x.archived).map((item) => <button type="button" onClick={() => setSelected(item)} key={item.id}>{item.name}</button>)}</details></main>; }
-const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
-const ACCEPTED_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"];
-const IMAGE_ACCEPT = ACCEPTED_IMAGE_TYPES.join(",");
+const IMAGE_ACCEPT = "image/*,.heic,.heif";
 const MAX_IMAGE_SIZE = 15 * 1024 * 1024;
+const IMAGE_VALIDATION_DIAGNOSTICS = import.meta.env.DEV;
+
+const reportImageValidationForTests = (item: File, accepted: boolean) => {
+ if (IMAGE_VALIDATION_DIAGNOSTICS) console.debug("[image-validation]", { type: item.type.toLowerCase(), hasSupportedExtension: hasSupportedImageExtension(item.name), accepted });
+};
 
 function Add({ data, update, go }: { data: PrototypeData; update: (d: PrototypeData) => void; go: (d: Destination) => void }) {
  const [image, setImage] = useState<string>(); const [state, setState] = useState<"choose" | "processing" | "review" | "edit">("choose"); const [candidate, setCandidate] = useState<Draft>(detectedDraft()); const [duplicate, setDuplicate] = useState(false); const [error, setError] = useState(""); const [previewUnavailable, setPreviewUnavailable] = useState(false); const fileSystemInput = useRef<HTMLInputElement>(null); const match = data.items.find((x) => !x.archived);
- const isSupportedImage = (item: File) => ACCEPTED_IMAGE_TYPES.includes(item.type.toLowerCase()) || ACCEPTED_IMAGE_EXTENSIONS.some((extension) => item.name.toLowerCase().endsWith(extension));
  const startFile = (item?: File, multiple = false) => {
    if (multiple) { setError("אפשר להעלות תמונה אחת בכל פעם."); return; }
-   if (!item || !isSupportedImage(item)) { setError("אפשר להעלות כרגע קובצי תמונה בלבד."); return; }
+   const accepted = Boolean(item && isSupportedImage(item));
+   if (item) reportImageValidationForTests(item, accepted);
+   if (!item || !accepted) { setError("אפשר להעלות כרגע קובצי תמונה בלבד."); return; }
    if (item.size > MAX_IMAGE_SIZE) { setError("התמונה גדולה מדי. אפשר להעלות תמונה עד 15MB."); return; }
    setError(""); setPreviewUnavailable(false);
    const reader = new FileReader();
-   reader.onerror = () => setError("לא הצלחנו לקרוא את התמונה. נסו לבחור JPEG, PNG או WebP.");
+   reader.onerror = () => { setPreviewUnavailable(true); setCandidate(detectedDraft()); setState("processing"); };
    reader.onload = () => { const result = String(reader.result); setImage(result); setCandidate({ ...detectedDraft(), image: result }); setState("processing"); };
    reader.readAsDataURL(item);
  };
